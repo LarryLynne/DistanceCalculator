@@ -25,6 +25,15 @@ body {
 
 .top-actions { display: flex; gap: 15px; align-items: center; }
 
+.top-actions { display: flex; gap: 10px; align-items: center; }
+
+/* New Stop Button Style */
+.stop-btn { border-color: #ef4444; color: #ef4444; }
+.stop-btn:hover { background: #ef4444; color: #fff; }
+
+/* Pause button visual toggle */
+.paused-state { border-color: #f59e0b; color: #f59e0b; }
+
 .top-btn {
     background: transparent; border: 1px solid var(--border);
     color: var(--text-muted); padding: 8px 18px; border-radius: 6px;
@@ -59,20 +68,16 @@ table {
 }
 
 th {
-    background: #161e2e; /* Убедись, что цвет плотный и не прозрачный */
+    background: #161e2e;
     padding: 12px;
     text-align: left;
     color: var(--text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
-    
     position: sticky;
-    /* Теперь строго 0, так как у контейнера нет padding-top */
     top: 0; 
     z-index: 100;
     border-bottom: 2px solid var(--border);
-    
-    /* Дополнительная защита: чтобы фон заголовка не "съедался" границами */
     background-clip: padding-box; 
 }
 

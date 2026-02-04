@@ -1,12 +1,34 @@
 let nodes = [];
 let calculationResults = [];
+let isRunning = false;
+let isPaused = false;
+let isStopped = false;
+let currentIndex = 0; // To track where we are if we pause
 
-// 1. Обработка файла и формирование списка пар
-document.getElementById('fileInput').addEventListener('change', function(e) {
+const fileInput = document.getElementById('fileInput');
+const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const stopBtn = document.getElementById('stopBtn');
+const saveBtn = document.getElementById('saveBtn');
+const progressInfo = document.getElementById('progressInfo');
+
+// Handle File Upload & Reset State
+fileInput.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
+    // 1. Reset everything for the new file
+    stopCalculation(); 
+    nodes = [];
+    calculationResults = [];
+    currentIndex = 0;
+    document.querySelector('#resultsTable tbody').innerHTML = '';
+    document.getElementById('emptyState').style.display = 'block';
+    progressInfo.style.display = 'none';
+    saveBtn.disabled = true;
+
     document.getElementById('fileName').innerText = file.name;
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
@@ -15,31 +37,35 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
         const json = XLSX.utils.sheet_to_json(sheet);
 
         nodes = json.map(row => ({
-            name: row['Склад'] || row['Название'] || row['Node'] || row['Вузол'] || row['Name'] || row['ID'],
+            name: row['Склад'] || row['Название'] || row['Node'] || row['Name'] || row['ID'] || 'Unnamed',
             lat: parseFloat(row['Широта'] || row['Lat'] || row['Latitude']),
             lng: parseFloat(row['Довгота'] || row['Lng'] || row['Longitude'])
         })).filter(n => !isNaN(n.lat) && !isNaN(n.lng));
 
         if (nodes.length > 0) {
-            prepareRoutes(); // Формируем список сразу
-            document.getElementById('startBtn').disabled = false;
+            prepareRoutes();
+            startBtn.disabled = false;
+            startBtn.innerText = "Start";
         }
     };
     reader.readAsArrayBuffer(file);
 });
 
-// Формируем все возможные комбинации и выводим их в таблицу
+// Updated logic to calculate all permutations (A -> B and B -> A)
 function prepareRoutes() {
     const tbody = document.querySelector('#resultsTable tbody');
     tbody.innerHTML = '';
     calculationResults = [];
     document.getElementById('emptyState').style.display = 'none';
 
-    let index = 0;
+    let idCounter = 0;
     for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
+        for (let j = 0; j < nodes.length; j++) {
+            // Skip calculating distance to the same node
+            if (i === j) continue; 
+
             const res = {
-                id: index,
+                id: idCounter,
                 from: nodes[i],
                 to: nodes[j],
                 distance: '—',
@@ -48,28 +74,46 @@ function prepareRoutes() {
             calculationResults.push(res);
             
             const row = document.createElement('tr');
-            row.id = `row-${index}`;
+            row.id = `row-${idCounter}`;
             row.innerHTML = `
                 <td>${res.from.name}</td>
                 <td>${res.to.name}</td>
-                <td class="dist-cell pending">${res.distance}</td>
-                <td class="time-cell pending">${res.duration}</td>
+                <td class="dist-cell pending">—</td>
+                <td class="time-cell pending">—</td>
             `;
             tbody.appendChild(row);
-            index++;
+            idCounter++;
         }
-        const progBox = document.getElementById('progressInfo');
-        progBox.style.display = 'block';
-        document.getElementById('currentProgress').innerText = '0';
-        document.getElementById('totalProgress').innerText = calculationResults.length;
     }
+    
+    progressInfo.style.display = 'block';
+    document.getElementById('currentProgress').innerText = '0';
+    document.getElementById('totalProgress').innerText = calculationResults.length;
 }
 
-// 2. Постепенный расчет
 async function startCalculation() {
-    document.getElementById('startBtn').disabled = true;
+    if (isRunning) return;
+    
+    isRunning = true;
+    isPaused = false;
+    isStopped = false;
+    
+    // UI Update
+    startBtn.style.display = 'none';
+    pauseBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'inline-block';
+    saveBtn.disabled = true;
 
-    for (let i = 0; i < calculationResults.length; i++) {
+    for (let i = currentIndex; i < calculationResults.length; i++) {
+        if (isStopped) break;
+        
+        // Pause Logic
+        while (isPaused && !isStopped) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        if (isStopped) break;
+
+        currentIndex = i;
         const item = calculationResults[i];
         const rowEl = document.getElementById(`row-${item.id}`);
 
@@ -81,11 +125,9 @@ async function startCalculation() {
                 const dist = (data.routes[0].distance / 1000).toFixed(2);
                 const dur = (data.routes[0].duration / 60).toFixed(1);
 
-                // Обновляем данные в массиве
                 item.distance = dist;
                 item.duration = dur;
 
-                // Обновляем ячейки в таблице
                 const distCell = rowEl.querySelector('.dist-cell');
                 const timeCell = rowEl.querySelector('.time-cell');
 
@@ -97,25 +139,53 @@ async function startCalculation() {
                 timeCell.classList.remove('pending');
             }
             document.getElementById('currentProgress').innerText = i + 1;
-            // Пауза 200мс для соблюдения лимитов API
-            await new Promise(r => setTimeout(r, 200));
+            await new Promise(r => setTimeout(r, 200)); 
         } catch (err) {
-            console.error("Query error:", err);
+            console.error("OSRM Error:", err);
         }
     }
     
-    document.getElementById('startBtn').innerText = "Done";
+    finishLogic();
+}
+
+function togglePause() {
+    isPaused = !isPaused;
+    pauseBtn.innerText = isPaused ? "Resume" : "Pause";
+    pauseBtn.classList.toggle('paused-state', isPaused);
+}
+
+function stopCalculation() {
+    isStopped = true;
+    isPaused = false;
+    isRunning = false;
+    finishLogic();
+}
+
+function finishLogic() {
+    isRunning = false;
+    startBtn.style.display = 'inline-block';
+    startBtn.innerText = isStopped ? "Restart" : (currentIndex >= calculationResults.length - 1 ? "Done" : "Start");
+    if (currentIndex >= calculationResults.length - 1) startBtn.disabled = true;
+    
+    pauseBtn.style.display = 'none';
+    pauseBtn.innerText = "Pause";
+    pauseBtn.classList.remove('paused-state');
+    stopBtn.style.display = 'none';
+    
+    if (calculationResults.some(r => r.distance !== '—')) {
+        saveBtn.disabled = false;
+    }
 }
 
 function exportToExcel() {
-    if (!calculationResults.some(r => r.distance !== '—')) return alert("No calculated data");
-    
-    const exportData = calculationResults.map(r => ({
-        "Node 1": r.from.name,
-        "Node 2": r.to.name,
-        "Distance (km)": r.distance,
-        "Time (min)": r.duration
-    }));
+    const exportData = calculationResults
+        .filter(r => r.distance !== '—')
+        .map(r => ({
+            "Node 1": r.from.name,
+            "Node 2": r.to.name,
+            "Distance (km)": r.distance,
+            "Time (min)": r.duration
+        }));
     
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
