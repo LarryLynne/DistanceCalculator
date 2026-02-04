@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distance Calculator | OSRM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="topBar">
+    <div class="logo">OSRM Distance Calculator</div>
+    <div class="top-actions">
+    <div id="progressInfo" style="font-size: 0.8rem; color: var(--accent); display: none;">
+        Calculated: <span id="currentProgress">0</span> / <span id="totalProgress">0</span>
+    </div>
+    <div class="file-wrapper">
+        <input type="file" id="fileInput" accept=".xlsx, .xls">
+        <div id="fileName">Upload Excel</div>
+    </div>
+    <button id="startBtn" class="top-btn run-btn" onclick="startCalculation()" disabled>Calculate</button>
+    <button class="top-btn save-btn" onclick="exportToExcel()">Download Excel</button>
+</div>
+</div>
+
+<div id="mainContent">
+    <div class="table-container">
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Node 1</th>
+                    <th>Node 2</th>
+                    <th>Distance, km</th>
+                    <th>Time (min)</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+        <div id="emptyState">Upload Excel file with columns: Node, Latitude, Longitude</div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
