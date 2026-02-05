@@ -100,3 +100,14 @@ td {
 tr:hover { background: #2d3a4f; }
 
 #emptyState { text-align: center; margin-top: 50px; color: var(--text-muted); }
+
+select.top-btn {
+    background: var(--bg-card);
+    cursor: pointer;
+    outline: none;
+}
+#apiKeyInput {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+}

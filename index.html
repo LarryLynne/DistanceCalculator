@@ -11,8 +11,14 @@
 <body>
 
 <div id="topBar">
-    <div class="logo">OSRM Distance Calculator</div>
+    <div class="logo">Distance Calculator</div>
     <div class="top-actions">
+        <select id="providerSelect" class="top-btn" onchange="toggleApiKeyField()">
+        <option value="osrm">OSRM (Free)</option>
+        <option value="routestripe">RouteStripe (API)</option>
+    </select>
+    
+    <input type="text" id="apiKeyInput" class="top-btn" placeholder="Enter API Key" style="display: none; width: 150px;">
         <div id="progressInfo" style="font-size: 0.8rem; color: var(--accent); display: none;">
             Calculated: <span id="currentProgress">0</span> / <span id="totalProgress">0</span>
         </div>
