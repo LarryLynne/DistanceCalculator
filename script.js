@@ -53,24 +53,27 @@ fileInput.addEventListener('change', function(e) {
 
 // Updated logic to calculate all permutations (A -> B and B -> A)
 function prepareRoutes() {
+    if (nodes.length === 0) return;
+
     const tbody = document.querySelector('#resultsTable tbody');
     tbody.innerHTML = '';
     calculationResults = [];
-    document.getElementById('emptyState').style.display = 'none';
+    
+    const useRadius = document.getElementById('radiusToggle').checked;
+    const radiusLimit = parseFloat(document.getElementById('radiusValue').value) || 0;
 
     let idCounter = 0;
     for (let i = 0; i < nodes.length; i++) {
         for (let j = 0; j < nodes.length; j++) {
-            // Skip calculating distance to the same node
             if (i === j) continue; 
 
-            const res = {
-                id: idCounter,
-                from: nodes[i],
-                to: nodes[j],
-                distance: '—',
-                duration: '—'
-            };
+            // Radius Logic
+            if (useRadius) {
+                const airDist = getHaversineDistance(nodes[i].lat, nodes[i].lng, nodes[j].lat, nodes[j].lng);
+                if (airDist > radiusLimit) continue; // Skip if too far
+            }
+
+            const res = { id: idCounter, from: nodes[i], to: nodes[j], distance: '—', duration: '—' };
             calculationResults.push(res);
             
             const row = document.createElement('tr');
@@ -86,9 +89,18 @@ function prepareRoutes() {
         }
     }
     
-    progressInfo.style.display = 'block';
-    document.getElementById('currentProgress').innerText = '0';
+    document.getElementById('emptyState').style.display = calculationResults.length > 0 ? 'none' : 'block';
+    if (calculationResults.length === 0 && useRadius) {
+        document.getElementById('emptyState').innerText = "No nodes found within the specified radius.";
+    }
+
+    document.getElementById('progressInfo').style.display = 'block';
     document.getElementById('totalProgress').innerText = calculationResults.length;
+    document.getElementById('currentProgress').innerText = '0';
+    
+    // Reset calculation state since the list changed
+    currentIndex = 0;
+    startBtn.innerText = "Start Calculation";
 }
 
 async function startCalculation() {
@@ -273,4 +285,15 @@ function exportToExcel() {
 function toggleApiKeyField() {
     const provider = document.getElementById('providerSelect').value;
     document.getElementById('apiKeyInput').style.display = (provider === 'routestripe') ? 'inline-block' : 'none';
+}
+
+function getHaversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
 }

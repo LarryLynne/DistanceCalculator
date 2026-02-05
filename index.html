@@ -13,6 +13,11 @@
 <div id="topBar">
     <div class="logo">Distance Calculator</div>
     <div class="top-actions">
+        <div class="radius-control" style="display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px;">
+        <input type="checkbox" id="radiusToggle" onchange="prepareRoutes()">
+        <label for="radiusToggle" style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Radius (km):</label>
+        <input type="number" id="radiusValue" value="50" style="width: 50px; background: transparent; border: none; border-bottom: 1px solid var(--accent); color: var(--text-main); outline: none;" onchange="prepareRoutes()">
+    </div>
         <select id="providerSelect" class="top-btn" onchange="toggleApiKeyField()">
         <option value="osrm">OSRM (Free)</option>
         <option value="routestripe">RouteStripe (API)</option>
